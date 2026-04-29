@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MCP Browser Chrome</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>MCP Browser Chrome</span>
+      </div>
+      <div class="controls">
+        <select id="provider" title="Provider"></select>
+        <select id="model" title="Model"></select>
+        <button id="new-chat" title="New chat" aria-label="New chat">+</button>
+        <button id="open-settings" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <main id="messages" aria-live="polite"></main>
+
+    <div id="approval" class="approval hidden">
+      <div class="approval-card">
+        <div class="approval-title">Approve tool call?</div>
+        <pre id="approval-body"></pre>
+        <div class="approval-actions">
+          <button id="deny">Deny</button>
+          <button id="approve" class="primary">Approve</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="composer">
+      <textarea
+        id="input"
+        rows="3"
+        placeholder="Ask anything, or tell the AI to act on this tab… (Shift+Enter for newline)"
+      ></textarea>
+      <div class="composer-row">
+        <span id="status" class="status"></span>
+        <button id="send" class="primary">Send</button>
+        <button id="stop" class="hidden">Stop</button>
+      </div>
+    </footer>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

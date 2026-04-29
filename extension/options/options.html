@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MCP Browser Chrome — Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>MCP Browser Chrome</h1>
+      <p class="muted">
+        Bring-your-own-key chat assistant that can drive Chrome through MCP-style
+        browser tools. Your keys live in Chrome sync storage and are sent only to
+        the provider you select.
+      </p>
+
+      <section>
+        <h2>Provider &amp; model</h2>
+        <label>Provider
+          <select id="provider"></select>
+        </label>
+        <label>Default model
+          <input id="model" type="text" placeholder="e.g. claude-sonnet-4-6" />
+        </label>
+        <label class="custom-only">Custom endpoint base URL
+          <input id="customEndpoint" type="text"
+                 placeholder="http://localhost:11434/v1  (Ollama)" />
+        </label>
+        <label class="custom-only">Custom model name
+          <input id="customModel" type="text" placeholder="llama3.1:8b" />
+        </label>
+      </section>
+
+      <section>
+        <h2>API keys</h2>
+        <label>Anthropic
+          <input id="key-anthropic" type="password" autocomplete="off" placeholder="sk-ant-…" />
+        </label>
+        <label>OpenAI
+          <input id="key-openai" type="password" autocomplete="off" placeholder="sk-…" />
+        </label>
+        <label>Google (Gemini)
+          <input id="key-google" type="password" autocomplete="off" placeholder="AIza…" />
+        </label>
+        <label>Custom (optional bearer token)
+          <input id="key-custom" type="password" autocomplete="off" placeholder="bearer token, if any" />
+        </label>
+      </section>
+
+      <section>
+        <h2>System prompt</h2>
+        <textarea id="systemPrompt" rows="6"></textarea>
+      </section>
+
+      <section class="row">
+        <label>Temperature
+          <input id="temperature" type="number" min="0" max="2" step="0.1" />
+        </label>
+        <label>Max tokens
+          <input id="maxTokens" type="number" min="256" max="32000" step="256" />
+        </label>
+        <label>Max tool iterations
+          <input id="maxToolIterations" type="number" min="1" max="50" step="1" />
+        </label>
+        <label>Approval mode
+          <select id="approvalMode">
+            <option value="auto">Auto (run all tools)</option>
+            <option value="writes">Ask before write/destructive</option>
+            <option value="all">Ask before every tool</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <h2>Tools</h2>
+        <label class="row-inline"><input type="checkbox" id="tool-browser" /> Browser DOM tools (read, click, type, scroll, eval)</label>
+        <label class="row-inline"><input type="checkbox" id="tool-tabs" /> Tab management (list, switch, open, close, history)</label>
+        <label class="row-inline"><input type="checkbox" id="tool-screenshot" /> Screenshot of active tab</label>
+        <label class="row-inline"><input type="checkbox" id="tool-downloads" /> Downloads</label>
+        <label class="row-inline"><input type="checkbox" id="tool-cookies" /> Cookies (read)</label>
+      </section>
+
+      <section>
+        <h2>External MCP servers</h2>
+        <p class="muted">
+          Connect to remote MCP servers over HTTP/SSE. Their tools become
+          available to the model alongside the built-in browser tools.
+        </p>
+        <div id="mcp-servers"></div>
+        <button id="add-mcp" type="button">+ Add MCP server</button>
+      </section>
+
+      <div class="actions">
+        <span id="status" class="status"></span>
+        <button id="save" class="primary">Save</button>
+      </div>
+    </div>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
