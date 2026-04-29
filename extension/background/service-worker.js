@@ -7,11 +7,26 @@ import { callProvider } from "../lib/providers/index.js";
 import { browserTools, getEnabledTools } from "../lib/tools/browser-tools.js";
 import { gatherMcpTools, callTool as callMcpTool } from "../lib/mcp/mcp-client.js";
 
-// Open the side panel when the toolbar action is clicked.
+// Open the side panel when the toolbar action is clicked. Set up the
+// context menu items idempotently — onInstalled fires on install and update,
+// but the menus persist, so we removeAll() first.
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((e) => console.warn("setPanelBehavior:", e));
+
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "ask-ai-page",
+      title: "Ask AI about this page",
+      contexts: ["page"]
+    });
+    chrome.contextMenus.create({
+      id: "ask-ai-selection",
+      title: "Ask AI about: \"%s\"",
+      contexts: ["selection"]
+    });
+  });
 });
 
 chrome.action.onClicked.addListener(async (tab) => {
@@ -20,20 +35,6 @@ chrome.action.onClicked.addListener(async (tab) => {
   } catch (e) {
     console.warn("sidePanel.open failed:", e);
   }
-});
-
-// Right-click → "Ask the AI about this page / selection"
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "ask-ai-page",
-    title: "Ask AI about this page",
-    contexts: ["page"]
-  });
-  chrome.contextMenus.create({
-    id: "ask-ai-selection",
-    title: "Ask AI about: \"%s\"",
-    contexts: ["selection"]
-  });
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {

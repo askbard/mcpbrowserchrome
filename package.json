@@ -1,0 +1,9 @@
+{
+  "name": "mcpbrowserchrome",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Universal LLM Chrome extension with MCP-style browser tools",
+  "scripts": {
+    "test": "node tests/run-all.mjs"
+  }
+}
