@@ -13,8 +13,11 @@
         <span>MCP Browser Chrome</span>
       </div>
       <div class="controls">
-        <select id="provider" title="Provider"></select>
-        <select id="model" title="Model"></select>
+        <button id="current-model" class="model-chip"
+                title="Current provider · model — click to change in Settings"
+                aria-label="Current model">
+          <span id="current-model-text">…</span>
+        </button>
         <button id="new-chat" title="New chat" aria-label="New chat">+</button>
         <button id="open-settings" title="Settings" aria-label="Settings">⚙</button>
       </div>

@@ -57,7 +57,7 @@ body {
   box-shadow: 0 0 12px var(--accent);
 }
 .controls { display: flex; gap: 6px; align-items: center; }
-.controls select, .controls button {
+.controls button {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -66,7 +66,17 @@ body {
   font-size: 12px;
   cursor: pointer;
 }
-.controls button:hover, .controls select:hover { border-color: var(--accent); }
+.controls button:hover { border-color: var(--accent); }
+.model-chip {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.model-chip:hover { color: var(--text); }
 
 main#messages {
   flex: 1;

@@ -1,5 +1,5 @@
-import { getSettings, patchSettings } from "../lib/storage.js";
-import { PROVIDERS, listOpenRouterModels } from "../lib/providers/index.js";
+import { getSettings } from "../lib/storage.js";
+import { PROVIDERS } from "../lib/providers/index.js";
 
 const $ = (sel) => document.querySelector(sel);
 const messagesEl = $("#messages");
@@ -8,8 +8,8 @@ const sendBtn = $("#send");
 const stopBtn = $("#stop");
 const newChatBtn = $("#new-chat");
 const settingsBtn = $("#open-settings");
-const providerSel = $("#provider");
-const modelSel = $("#model");
+const modelChip = $("#current-model");
+const modelChipText = $("#current-model-text");
 const statusEl = $("#status");
 const approvalEl = $("#approval");
 const approvalBody = $("#approval-body");
@@ -26,25 +26,7 @@ let currentSessionId = null;
 
 (async function init() {
   const s = await getSettings();
-  for (const [key, p] of Object.entries(PROVIDERS)) {
-    const opt = document.createElement("option");
-    opt.value = key;
-    opt.textContent = p.label;
-    providerSel.appendChild(opt);
-  }
-  providerSel.value = s.provider;
-  await refreshModelOptions(s);
-  if (modelSel.options.length) {
-    if (s.provider === "custom") {
-      modelSel.value = s.customModel || modelSel.options[0].value;
-    } else {
-      modelSel.value =
-        s.model ||
-        PROVIDERS[s.provider].models[0] ||
-        modelSel.options[0].value;
-    }
-  }
-
+  updateModelChip(s);
   if (!s.apiKeys[s.provider] && PROVIDERS[s.provider].needsKey) {
     appendSystem(
       `No API key for ${PROVIDERS[s.provider].label}. ` +
@@ -55,82 +37,21 @@ let currentSessionId = null;
   }
 })();
 
-providerSel.addEventListener("change", async () => {
-  const s = await patchSettings({ provider: providerSel.value });
-  await refreshModelOptions(s);
-  if (modelSel.options.length) {
-    if (s.provider === "custom") {
-      modelSel.value = s.customModel || modelSel.options[0].value;
-    } else {
-      modelSel.value =
-        PROVIDERS[s.provider].models[0] || modelSel.options[0].value;
-    }
-  }
-  if (s.provider === "custom")
-    await patchSettings({ customModel: modelSel.value });
-  else await patchSettings({ model: modelSel.value });
-  if (!s.apiKeys[s.provider] && PROVIDERS[s.provider].needsKey) {
-    appendSystem(
-      `No API key for ${PROVIDERS[s.provider].label}. ` +
-        "Click ⚙ to open settings and add one."
-    );
-  }
+modelChip.addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+// Live-update the chip whenever settings change (e.g. user saves in options).
+chrome.storage.onChanged?.addListener(async (changes, area) => {
+  if (area !== "sync" || !changes.settings) return;
+  const s = await getSettings();
+  updateModelChip(s);
 });
 
-modelSel.addEventListener("change", async () => {
-  const provider = providerSel.value;
-  if (provider === "custom") await patchSettings({ customModel: modelSel.value });
-  else await patchSettings({ model: modelSel.value });
-});
-
-async function refreshModelOptions(s) {
-  modelSel.innerHTML = "";
-  const provider = PROVIDERS[s.provider];
-
-  // First-class OpenRouter: fetch the catalog and populate the dropdown.
-  if (provider.isOpenRouter) {
-    const placeholder = document.createElement("option");
-    placeholder.value = s.model || "";
-    placeholder.textContent = "Loading OpenRouter models…";
-    modelSel.appendChild(placeholder);
-    try {
-      const list = await listOpenRouterModels({
-        apiKey: s.apiKeys?.openrouter || ""
-      });
-      modelSel.innerHTML = "";
-      for (const m of list) {
-        const opt = document.createElement("option");
-        opt.value = m.id;
-        opt.textContent = m.id + (m.supportsTools === true ? "  ✓ tools" : "");
-        modelSel.appendChild(opt);
-      }
-      if (s.model) modelSel.value = s.model;
-    } catch (e) {
-      modelSel.innerHTML = "";
-      const opt = document.createElement("option");
-      opt.value = s.model || "";
-      opt.textContent = s.model || "(set in settings)";
-      modelSel.appendChild(opt);
-      appendSystem("Could not load OpenRouter models: " + (e.message || e));
-    }
-    return;
-  }
-
-  const models = provider.models;
-  if (models.length === 0) {
-    // Custom provider — free-text dropdown driven by saved customModel.
-    const opt = document.createElement("option");
-    opt.value = s.customModel || "";
-    opt.textContent = s.customModel || "(set in settings)";
-    modelSel.appendChild(opt);
-    return;
-  }
-  for (const m of models) {
-    const opt = document.createElement("option");
-    opt.value = m;
-    opt.textContent = m;
-    modelSel.appendChild(opt);
-  }
+function updateModelChip(s) {
+  const p = PROVIDERS[s.provider];
+  const label = p?.label?.split(" ")[0] || s.provider;
+  const model =
+    s.provider === "custom" ? s.customModel || "(no model)" : s.model || "(no model)";
+  modelChipText.textContent = `${label} · ${model}`;
 }
 
 // ---------- send ----------
