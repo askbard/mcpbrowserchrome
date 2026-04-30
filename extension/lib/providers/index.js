@@ -1,6 +1,7 @@
 import * as anthropic from "./anthropic.js";
 import * as openai from "./openai.js";
 import * as google from "./google.js";
+import * as openrouter from "./openrouter.js";
 
 export { listModels as listGoogleModels } from "./google.js";
 export {
@@ -14,25 +15,43 @@ export const PROVIDERS = {
     label: "Anthropic (Claude)",
     chat: anthropic.chat,
     models: anthropic.ANTHROPIC_MODELS,
-    needsKey: true
+    needsKey: true,
+    keyPlaceholder: "sk-ant-…",
+    keyHelp: "https://console.anthropic.com/settings/keys"
   },
   openai: {
     label: "OpenAI (GPT)",
     chat: openai.chat,
     models: openai.OPENAI_MODELS,
-    needsKey: true
+    needsKey: true,
+    keyPlaceholder: "sk-…",
+    keyHelp: "https://platform.openai.com/api-keys"
   },
   google: {
     label: "Google (Gemini)",
     chat: google.chat,
     models: google.GOOGLE_MODELS,
-    needsKey: true
+    needsKey: true,
+    keyPlaceholder: "AIza…",
+    keyHelp: "https://aistudio.google.com/app/apikey"
+  },
+  openrouter: {
+    label: "OpenRouter (any model)",
+    chat: openrouter.chat,
+    // Models are loaded dynamically from the OpenRouter catalog.
+    models: [],
+    needsKey: true,
+    keyPlaceholder: "sk-or-v1-…",
+    keyHelp: "https://openrouter.ai/keys",
+    isOpenRouter: true
   },
   custom: {
-    label: "Custom OpenAI-compatible (Ollama, LM Studio, OpenRouter, …)",
+    label: "Custom OpenAI-compatible (Ollama, LM Studio, …)",
     chat: openai.chat,
     models: [],
-    needsKey: false
+    needsKey: false,
+    keyPlaceholder: "optional bearer token",
+    keyHelp: ""
   }
 };
 
@@ -48,6 +67,11 @@ export async function callProvider(settings, args) {
     settings.provider === "custom" && settings.customModel
       ? settings.customModel
       : settings.model;
+  if (!model) {
+    throw new Error(
+      `No model selected for ${p.label}. Open Settings and pick one.`
+    );
+  }
 
   let endpoint;
   if (settings.provider === "custom") {

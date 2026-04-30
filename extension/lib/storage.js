@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS = {
     anthropic: "",
     openai: "",
     google: "",
+    openrouter: "",
     custom: ""
   },
   customEndpoint: "",

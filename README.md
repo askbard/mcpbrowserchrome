@@ -8,8 +8,10 @@ Groq…) and let the model **drive your browser** through MCP-style tools.
 ## Features
 
 - **Side-panel chat UI** that opens next to any tab (`Ctrl/Cmd+Shift+M`).
-- **Multi-provider** — Anthropic, OpenAI, Google, or any OpenAI-compatible URL.
-  Provider, model, and key live in extension settings.
+- **Multi-provider** — Anthropic, OpenAI, Google, **OpenRouter** (first-class,
+  with auto-loaded model catalog), or any OpenAI-compatible URL (Ollama,
+  LM Studio, Groq, Together, …). One unified API-key field that swaps content
+  per selected provider; keys are remembered per-provider in `chrome.storage.sync`.
 - **MCP-style browser tools** the model can call directly:
   - `browser_get_page` — read URL, title, and visible text of a tab
   - `browser_query` — CSS-selector DOM snapshot
