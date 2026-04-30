@@ -23,6 +23,12 @@ Groq…) and let the model **drive your browser** through MCP-style tools.
   - `downloads_start`, `cookies_get` (off by default)
 - **External MCP servers** — register any HTTP/SSE MCP endpoint in Settings;
   its tools join the model's tool list under `mcp__<server>__<tool>`.
+- **Reverse bridge: any MCP client → Chrome.** Run `node bridge/server.js`
+  and toggle "Enable bridge mode" in Settings. The extension long-polls the
+  local bridge and exposes its browser tools over MCP, so external clients
+  (mcp-inspector, Cursor, Cline, custom Python/Node scripts, even `curl`)
+  can drive Chrome — no Claude Desktop, no native messaging required. See
+  [`bridge/README.md`](bridge/README.md).
 - **Approval modes** — auto, ask-before-writes (default), or ask-before-all.
 - **Right-click menu** — "Ask AI about this page / selection".
 - **Keys never leave your browser** except to the provider you selected.

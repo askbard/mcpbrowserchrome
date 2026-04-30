@@ -31,7 +31,9 @@ export const DEFAULT_SETTINGS = {
   },
   mcpServers: [],
   approvalMode: "auto",
-  theme: "system"
+  theme: "system",
+  bridgeEnabled: false,
+  bridgeUrl: "http://127.0.0.1:7842"
 };
 
 export async function getSettings() {

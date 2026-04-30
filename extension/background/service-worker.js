@@ -6,6 +6,17 @@ import { getSettings, getConversation, saveConversation, newConversation } from 
 import { callProvider } from "../lib/providers/index.js";
 import { browserTools, getEnabledTools } from "../lib/tools/browser-tools.js";
 import { gatherMcpTools, callTool as callMcpTool } from "../lib/mcp/mcp-client.js";
+import { startBridgeIfEnabled, stop as stopBridge } from "../lib/bridge/bridge-client.js";
+
+// Start (or stop) the local MCP bridge connection on every relevant lifecycle
+// event and on settings change.
+chrome.runtime.onStartup?.addListener(() => startBridgeIfEnabled());
+chrome.runtime.onInstalled.addListener(() => startBridgeIfEnabled());
+startBridgeIfEnabled();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "sync" || !changes.settings) return;
+  startBridgeIfEnabled();
+});
 
 // Open the side panel when the toolbar action is clicked. Set up the
 // context menu items idempotently — onInstalled fires on install and update,

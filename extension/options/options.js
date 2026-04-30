@@ -37,6 +37,26 @@ const $ = (id) => document.getElementById(id);
   $("tool-screenshot").checked = s.enabledTools.screenshot;
   $("tool-downloads").checked = s.enabledTools.downloads;
   $("tool-cookies").checked = s.enabledTools.cookies;
+  $("bridge-enabled").checked = !!s.bridgeEnabled;
+  $("bridge-url").value = s.bridgeUrl || "http://127.0.0.1:7842";
+
+  $("bridge-test").addEventListener("click", async () => {
+    const url = ($("bridge-url").value || "").replace(/\/+$/, "");
+    const out = $("bridge-status");
+    out.textContent = "Testing…";
+    try {
+      const res = await fetch(`${url}/health`);
+      if (!res.ok) throw new Error(res.status + " " + res.statusText);
+      const h = await res.json();
+      out.textContent = h.workerConnected
+        ? `OK — bridge reachable, browser worker connected (${h.toolsRegistered} tools).`
+        : `Bridge reachable but no browser worker yet. Enable bridge mode and Save.`;
+    } catch (e) {
+      out.textContent =
+        `Cannot reach ${url}/health: ${e.message}. ` +
+        `Did you run "node bridge/server.js"?`;
+    }
+  });
 
   renderMcp(s.mcpServers || []);
   syncProviderUi(provSel.value);
@@ -292,6 +312,8 @@ const $ = (id) => document.getElementById(id);
         downloads: $("tool-downloads").checked,
         cookies: $("tool-cookies").checked
       },
+      bridgeEnabled: $("bridge-enabled").checked,
+      bridgeUrl: $("bridge-url").value.trim() || "http://127.0.0.1:7842",
       mcpServers: currentMcpRows().filter((s) => s.name && s.url)
     };
     await saveSettings(merged);

@@ -117,6 +117,26 @@
       </section>
 
       <section>
+        <h2>External MCP bridge (let other apps drive the browser)</h2>
+        <p class="muted">
+          Run <code>node bridge/server.js</code> from this repo to start a
+          local MCP server. Any MCP client (mcp-inspector, Cursor, custom
+          scripts, <code>curl</code>) can then connect to
+          <code>http://127.0.0.1:7842/mcp</code> and drive Chrome through
+          the same browser tools the chat panel uses.
+        </p>
+        <label class="row-inline">
+          <input type="checkbox" id="bridge-enabled" />
+          Enable bridge mode (extension long-polls the local bridge)
+        </label>
+        <label>Bridge URL
+          <input id="bridge-url" type="text" placeholder="http://127.0.0.1:7842" />
+        </label>
+        <button id="bridge-test" type="button" class="link">Test connection</button>
+        <div id="bridge-status" class="muted small"></div>
+      </section>
+
+      <section>
         <h2>External MCP servers</h2>
         <p class="muted">
           Connect to remote MCP servers over HTTP/SSE. Their tools become

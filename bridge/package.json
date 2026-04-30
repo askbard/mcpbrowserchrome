@@ -1,0 +1,17 @@
+{
+  "name": "mcpbrowserchrome-bridge",
+  "version": "0.1.0",
+  "description": "Local MCP bridge: lets external MCP clients drive Chrome via the MCP Browser Chrome extension.",
+  "type": "module",
+  "main": "server.js",
+  "bin": {
+    "mcpbrowserchrome-bridge": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
