@@ -124,3 +124,34 @@ button.link:hover { color: var(--accent); border-color: transparent; }
   overflow: auto;
 }
 #google-models-result:empty { display: none; }
+
+#openrouter-results {
+  margin-top: 6px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+#openrouter-results:empty { display: none; }
+.or-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  cursor: pointer;
+}
+.or-row:hover { background: var(--panel-2); }
+.or-row:last-child { border-bottom: none; }
+.or-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.or-id .pub { color: var(--muted); }
+.or-meta { font-size: 11px; color: var(--muted); }
+.or-tools {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.or-tools.yes { color: var(--ok, #22c55e); border-color: var(--ok, #22c55e); }

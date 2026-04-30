@@ -1,5 +1,11 @@
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from "../lib/storage.js";
-import { PROVIDERS, listGoogleModels } from "../lib/providers/index.js";
+import {
+  PROVIDERS,
+  listGoogleModels,
+  listOpenRouterModels,
+  formatOpenRouterPrice,
+  formatOpenRouterContext
+} from "../lib/providers/index.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -61,6 +67,111 @@ const $ = (id) => document.getElementById(id);
       $("status").textContent = `${btn.textContent} preset filled. Don't forget to add your API key in the Custom field and Save.`;
     });
   });
+
+  // Show OpenRouter helper iff the endpoint looks like OpenRouter.
+  const orTools = $("openrouter-tools");
+  const orFilter = $("openrouter-filter");
+  const orResults = $("openrouter-results");
+  const orRefreshBtn = $("refresh-openrouter-models");
+  const orDatalist = $("openrouter-models");
+  let orCachedModels = [];
+
+  function isOpenRouterEndpoint() {
+    return /openrouter\.ai/i.test($("customEndpoint").value || "");
+  }
+  function syncOpenRouterUi() {
+    orTools.style.display = isOpenRouterEndpoint() ? "block" : "none";
+  }
+  syncOpenRouterUi();
+  $("customEndpoint").addEventListener("input", syncOpenRouterUi);
+
+  function renderOpenRouterList(models) {
+    orResults.innerHTML = "";
+    if (!models.length) {
+      orResults.textContent = "No models match the filter.";
+      return;
+    }
+    orRefreshBtn.style.display = "inline";
+    orFilter.style.display = "block";
+    for (const m of models.slice(0, 250)) {
+      const row = document.createElement("div");
+      row.className = "or-row";
+      const [pub, ...rest] = m.id.split("/");
+      const name = rest.join("/") || m.id;
+      const meta =
+        [
+          formatOpenRouterContext(m.contextLength),
+          "in: " + formatOpenRouterPrice(m.promptUsdPerMTok),
+          "out: " + formatOpenRouterPrice(m.completionUsdPerMTok)
+        ]
+          .filter(Boolean)
+          .join("  •  ");
+      const toolsBadge =
+        m.supportsTools === true ? "tools"
+        : m.supportsTools === false ? "no tools"
+        : "?";
+      const toolsClass = m.supportsTools === true ? "or-tools yes" : "or-tools";
+      row.innerHTML = `
+        <div class="or-id">${rest.length ? `<span class="pub">${esc(pub)}/</span>${esc(name)}` : esc(m.id)}</div>
+        <div class="or-meta">${esc(meta)}</div>
+        <span class="${toolsClass}">${toolsBadge}</span>`;
+      row.title = m.description || m.id;
+      row.addEventListener("click", () => {
+        $("customModel").value = m.id;
+        $("status").textContent = `Custom model set to ${m.id}. Don't forget to Save.`;
+      });
+      orResults.appendChild(row);
+    }
+    if (models.length > 250) {
+      const more = document.createElement("div");
+      more.className = "or-meta";
+      more.style.padding = "6px 8px";
+      more.textContent = `…+${models.length - 250} more (filter to narrow).`;
+      orResults.appendChild(more);
+    }
+  }
+
+  function applyFilter() {
+    const q = orFilter.value.trim().toLowerCase();
+    if (!q) return renderOpenRouterList(orCachedModels);
+    const terms = q.split(/\s+/);
+    const filtered = orCachedModels.filter((m) => {
+      const hay = `${m.id} ${m.name} ${m.description}`.toLowerCase();
+      return terms.every((t) => {
+        if (t === "free")
+          return m.promptUsdPerMTok === 0 && m.completionUsdPerMTok === 0;
+        if (t === "tools") return m.supportsTools === true;
+        return hay.includes(t);
+      });
+    });
+    renderOpenRouterList(filtered);
+  }
+  orFilter.addEventListener("input", applyFilter);
+
+  async function loadOpenRouter(force = false) {
+    orResults.textContent = "Loading OpenRouter catalog…";
+    try {
+      const apiKey = $("key-custom").value.trim();
+      const models = await listOpenRouterModels({ apiKey, force });
+      orCachedModels = models;
+      // Populate datalist for autocomplete on the Custom model input.
+      orDatalist.innerHTML = "";
+      for (const m of models) {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.label = formatOpenRouterContext(m.contextLength);
+        orDatalist.appendChild(opt);
+      }
+      applyFilter();
+      $("status").textContent =
+        `Loaded ${models.length} OpenRouter models. Click a row to select, ` +
+        `or type to autocomplete in the model field.`;
+    } catch (e) {
+      orResults.textContent = "Error: " + (e.message || e);
+    }
+  }
+  $("load-openrouter-models").addEventListener("click", () => loadOpenRouter(false));
+  orRefreshBtn.addEventListener("click", () => loadOpenRouter(true));
 
   $("list-google-models").addEventListener("click", async () => {
     const key = $("key-google").value.trim();
@@ -169,4 +280,11 @@ function currentMcpRows() {
 
 function escAttr(s) {
   return String(s).replace(/"/g, "&quot;");
+}
+
+function esc(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]
+  );
 }

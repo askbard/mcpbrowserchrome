@@ -44,8 +44,21 @@
           </datalist>
         </label>
         <label class="custom-only">Custom model name
-          <input id="customModel" type="text"
+          <input id="customModel" type="text" list="openrouter-models"
                  placeholder="anthropic/claude-3.5-sonnet  (OpenRouter)" />
+          <datalist id="openrouter-models"></datalist>
+          <div id="openrouter-tools" class="custom-only" style="display:none">
+            <button id="load-openrouter-models" type="button" class="link">
+              Load OpenRouter models
+            </button>
+            <button id="refresh-openrouter-models" type="button" class="link" style="display:none">
+              ↻ refresh
+            </button>
+            <input id="openrouter-filter" type="text"
+                   placeholder="filter by id, e.g. claude, sonnet, free"
+                   style="display:none; margin-top:6px" />
+            <div id="openrouter-results" class="muted small"></div>
+          </div>
           <span class="muted small">
             For OpenRouter, the model id includes the publisher, e.g.
             <code>anthropic/claude-3.5-sonnet</code>,

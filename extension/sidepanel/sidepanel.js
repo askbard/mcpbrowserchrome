@@ -1,5 +1,5 @@
 import { getSettings, patchSettings } from "../lib/storage.js";
-import { PROVIDERS } from "../lib/providers/index.js";
+import { PROVIDERS, listOpenRouterModels } from "../lib/providers/index.js";
 
 const $ = (sel) => document.querySelector(sel);
 const messagesEl = $("#messages");
@@ -33,9 +33,13 @@ let currentSessionId = null;
     providerSel.appendChild(opt);
   }
   providerSel.value = s.provider;
-  refreshModelOptions(s);
-  modelSel.value =
-    s.provider === "custom" ? s.customModel || "" : s.model || PROVIDERS[s.provider].models[0];
+  await refreshModelOptions(s);
+  if (modelSel.options.length) {
+    modelSel.value =
+      s.provider === "custom"
+        ? s.customModel || modelSel.options[0].value
+        : s.model || PROVIDERS[s.provider].models[0];
+  }
 
   if (!s.apiKeys[s.provider] && PROVIDERS[s.provider].needsKey) {
     appendSystem(
@@ -49,10 +53,15 @@ let currentSessionId = null;
 
 providerSel.addEventListener("change", async () => {
   const s = await patchSettings({ provider: providerSel.value });
-  refreshModelOptions(s);
-  modelSel.value =
-    s.provider === "custom" ? s.customModel || "" : PROVIDERS[s.provider].models[0];
-  await patchSettings({ model: modelSel.value });
+  await refreshModelOptions(s);
+  if (modelSel.options.length) {
+    modelSel.value =
+      s.provider === "custom"
+        ? s.customModel || modelSel.options[0].value
+        : PROVIDERS[s.provider].models[0];
+  }
+  if (s.provider === "custom") await patchSettings({ customModel: modelSel.value });
+  else await patchSettings({ model: modelSel.value });
 });
 
 modelSel.addEventListener("change", async () => {
@@ -61,11 +70,41 @@ modelSel.addEventListener("change", async () => {
   else await patchSettings({ model: modelSel.value });
 });
 
-function refreshModelOptions(s) {
+async function refreshModelOptions(s) {
   modelSel.innerHTML = "";
   const models = PROVIDERS[s.provider].models;
   if (models.length === 0) {
-    // Custom provider: free-text-ish — populate single option from settings.
+    // Custom provider. If the endpoint is OpenRouter, fetch its catalog
+    // (cached for 1h) and populate the dropdown so the user can pick from
+    // the full list. Otherwise fall back to free-text.
+    if (/openrouter\.ai/i.test(s.customEndpoint || "")) {
+      const placeholder = document.createElement("option");
+      placeholder.value = s.customModel || "";
+      placeholder.textContent = "Loading OpenRouter models…";
+      modelSel.appendChild(placeholder);
+      try {
+        const list = await listOpenRouterModels({
+          apiKey: s.apiKeys?.custom || ""
+        });
+        modelSel.innerHTML = "";
+        for (const m of list) {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          opt.textContent =
+            m.id + (m.supportsTools === true ? "  ✓ tools" : "");
+          modelSel.appendChild(opt);
+        }
+        if (s.customModel) modelSel.value = s.customModel;
+      } catch (e) {
+        modelSel.innerHTML = "";
+        const opt = document.createElement("option");
+        opt.value = s.customModel || "";
+        opt.textContent = s.customModel || "(set in settings)";
+        modelSel.appendChild(opt);
+        appendSystem("Could not load OpenRouter models: " + (e.message || e));
+      }
+      return;
+    }
     const opt = document.createElement("option");
     opt.value = s.customModel || "";
     opt.textContent = s.customModel || "(set in settings)";

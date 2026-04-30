@@ -3,6 +3,11 @@ import * as openai from "./openai.js";
 import * as google from "./google.js";
 
 export { listModels as listGoogleModels } from "./google.js";
+export {
+  listOpenRouterModels,
+  formatPrice as formatOpenRouterPrice,
+  formatContext as formatOpenRouterContext
+} from "./openrouter.js";
 
 export const PROVIDERS = {
   anthropic: {
