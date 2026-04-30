@@ -210,6 +210,146 @@ assert(userTrContents.length === 1, "Gemini merges consecutive functionResponse 
 assert(userTrContents[0].parts.length === 2, "two functionResponse parts preserved");
 assert(res.toolCalls[0].name === "browser_get_page", "extracts Gemini functionCall");
 
+// ---- Gemini schema sanitization ----
+console.log("\nGemini schema sanitization");
+captured = null; nextReply = null;
+nextReply = {
+  candidates: [{ content: { parts: [{ text: "ok" }] }, finishReason: "STOP" }]
+};
+const trickyTools = [
+  // Empty input schema — Gemini rejects empty `properties: {}`.
+  {
+    name: "browser_screenshot",
+    description: "shot",
+    input_schema: { type: "object", properties: {} }
+  },
+  // Schema with default + enum + $schema (all unsupported by Gemini).
+  {
+    name: "browser_scroll",
+    description: "scroll",
+    input_schema: {
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        direction: { type: "string", enum: ["up", "down"], default: "down" },
+        amount: { type: "number", default: 800 }
+      }
+    }
+  }
+];
+await google.chat({
+  apiKey: "k",
+  model: "gemini-2.5-pro",
+  system: "",
+  messages: [{ role: "user", content: "hi" }],
+  tools: trickyTools,
+  temperature: 0.4,
+  maxTokens: 1024
+});
+const decls = captured.body.tools[0].functionDeclarations;
+const screenshot = decls.find((d) => d.name === "browser_screenshot");
+assert(screenshot && !screenshot.parameters, "empty-properties tool: parameters omitted");
+const scroll = decls.find((d) => d.name === "browser_scroll");
+assert(scroll && scroll.parameters, "non-empty tool keeps parameters");
+assert(!("$schema" in scroll.parameters), "$schema stripped");
+assert(!("additionalProperties" in scroll.parameters), "additionalProperties stripped");
+assert(
+  !("default" in (scroll.parameters.properties.direction || {})),
+  "nested default stripped"
+);
+assert(
+  Array.isArray(scroll.parameters.properties.direction.enum),
+  "enum preserved"
+);
+
+// ---- Gemini name sanitization round-trip ----
+console.log("\nGemini name sanitization round-trip");
+captured = null; nextReply = null;
+const dottedName = "mcp__demo.server__do.thing";
+const safeName = "mcp__demo_server__do_thing";
+nextReply = {
+  candidates: [
+    {
+      content: { parts: [{ functionCall: { name: safeName, args: {} } }] },
+      finishReason: "STOP"
+    }
+  ]
+};
+const dotted = await google.chat({
+  apiKey: "k",
+  model: "gemini-2.5-pro",
+  messages: [{ role: "user", content: "go" }],
+  tools: [
+    {
+      name: dottedName,
+      description: "x",
+      input_schema: { type: "object", properties: { a: { type: "string" } } }
+    }
+  ],
+  temperature: 0.5,
+  maxTokens: 256
+});
+assert(
+  captured.body.tools[0].functionDeclarations[0].name === safeName,
+  "dotted tool name sanitized on wire"
+);
+assert(
+  dotted.toolCalls[0].name === dottedName,
+  "tool call name translated back to original for dispatch"
+);
+
+// ---- Gemini functionResponse: JSON-parseable content becomes the object ----
+console.log("\nGemini functionResponse content shape");
+captured = null; nextReply = null;
+nextReply = {
+  candidates: [{ content: { parts: [{ text: "ok" }] }, finishReason: "STOP" }]
+};
+await google.chat({
+  apiKey: "k",
+  model: "gemini-2.5-pro",
+  messages: [
+    { role: "user", content: "go" },
+    {
+      role: "assistant",
+      content: [{ type: "tool_use", id: "x", name: "browser_get_page", input: {} }]
+    },
+    {
+      role: "tool",
+      tool_use_id: "x",
+      tool_name: "browser_get_page",
+      content: '{"title":"Hello","url":"https://example.test"}'
+    }
+  ],
+  tools: [
+    {
+      name: "browser_get_page",
+      description: "x",
+      input_schema: { type: "object", properties: {} }
+    }
+  ]
+});
+const fr = captured.body.contents.find((c) =>
+  c.parts.some((p) => p.functionResponse)
+);
+const responseObj = fr.parts[0].functionResponse.response;
+assert(responseObj.title === "Hello" && responseObj.url === "https://example.test",
+  "JSON-string tool result lifted into response object");
+
+// ---- Gemini auto-prepends user turn if conversation starts wrong ----
+console.log("\nGemini contents must start with user");
+captured = null; nextReply = null;
+nextReply = { candidates: [{ content: { parts: [{ text: "ok" }] } }] };
+await google.chat({
+  apiKey: "k",
+  model: "gemini-2.5-pro",
+  messages: [
+    { role: "assistant", content: [{ type: "text", text: "hi" }] }
+  ],
+  tools: []
+});
+assert(captured.body.contents[0].role === "user", "synthetic user turn prepended");
+
 // ---- summary ----
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
