@@ -38,6 +38,30 @@ const $ = (id) => document.getElementById(id);
 
   renderMcp(s.mcpServers || []);
 
+  // Custom-provider presets
+  const PRESETS = {
+    openrouter: {
+      endpoint: "https://openrouter.ai/api/v1",
+      model: "anthropic/claude-3.5-sonnet"
+    },
+    ollama: { endpoint: "http://localhost:11434/v1", model: "llama3.1:8b" },
+    lmstudio: { endpoint: "http://localhost:1234/v1", model: "" },
+    groq: { endpoint: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+    together: {
+      endpoint: "https://api.together.xyz/v1",
+      model: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+    }
+  };
+  document.querySelectorAll("[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = PRESETS[btn.dataset.preset];
+      if (!p) return;
+      $("customEndpoint").value = p.endpoint;
+      if (p.model) $("customModel").value = p.model;
+      $("status").textContent = `${btn.textContent} preset filled. Don't forget to add your API key in the Custom field and Save.`;
+    });
+  });
+
   $("list-google-models").addEventListener("click", async () => {
     const key = $("key-google").value.trim();
     const out = $("google-models-result");

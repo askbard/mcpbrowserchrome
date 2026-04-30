@@ -350,6 +350,66 @@ await google.chat({
 });
 assert(captured.body.contents[0].role === "user", "synthetic user turn prepended");
 
+// ---- Custom provider validation ----
+console.log("\nCustom provider validation");
+const { callProvider } = await import("../extension/lib/providers/index.js");
+let threwForMissingEndpoint = false;
+try {
+  await callProvider(
+    {
+      provider: "custom",
+      apiKeys: { custom: "sk-or-test" },
+      customEndpoint: "",
+      customModel: "anthropic/claude-3.5-sonnet"
+    },
+    { messages: [{ role: "user", content: "hi" }], tools: [] }
+  );
+} catch (e) {
+  threwForMissingEndpoint = /no endpoint URL is set/i.test(e.message);
+}
+assert(threwForMissingEndpoint, "custom provider with empty endpoint throws helpful error");
+
+// Trailing-slash trimming + OpenRouter attribution headers
+captured = null; nextReply = null;
+nextReply = { choices: [{ message: { role: "assistant", content: "ok" } }] };
+await callProvider(
+  {
+    provider: "custom",
+    apiKeys: { custom: "sk-or-test" },
+    customEndpoint: "https://openrouter.ai/api/v1/",
+    customModel: "anthropic/claude-3.5-sonnet"
+  },
+  { messages: [{ role: "user", content: "hi" }], tools: [] }
+);
+assert(
+  captured.url === "https://openrouter.ai/api/v1/chat/completions",
+  "trailing slash on custom endpoint is normalized"
+);
+assert(
+  captured.init.headers["HTTP-Referer"] && captured.init.headers["X-Title"],
+  "OpenRouter attribution headers added"
+);
+assert(
+  captured.init.headers.Authorization === "Bearer sk-or-test",
+  "custom key sent to custom endpoint, NOT to OpenAI"
+);
+
+let threwForMissingModel = false;
+try {
+  await callProvider(
+    {
+      provider: "custom",
+      apiKeys: { custom: "x" },
+      customEndpoint: "http://localhost:11434/v1",
+      customModel: ""
+    },
+    { messages: [{ role: "user", content: "hi" }], tools: [] }
+  );
+} catch (e) {
+  threwForMissingModel = /needs a model name/i.test(e.message);
+}
+assert(threwForMissingModel, "custom provider with empty model throws helpful error");
+
 // ---- summary ----
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

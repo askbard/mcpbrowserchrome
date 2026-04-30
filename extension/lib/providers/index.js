@@ -43,10 +43,36 @@ export async function callProvider(settings, args) {
     settings.provider === "custom" && settings.customModel
       ? settings.customModel
       : settings.model;
+
+  let endpoint;
+  if (settings.provider === "custom") {
+    endpoint = (settings.customEndpoint || "").trim();
+    if (!endpoint) {
+      throw new Error(
+        "Custom provider selected but no endpoint URL is set. " +
+          'Open Settings and fill in "Custom endpoint base URL". ' +
+          "Examples:\n" +
+          "  • OpenRouter:  https://openrouter.ai/api/v1\n" +
+          "  • Ollama:      http://localhost:11434/v1\n" +
+          "  • LM Studio:   http://localhost:1234/v1\n" +
+          "  • Groq:        https://api.groq.com/openai/v1\n" +
+          "  • Together AI: https://api.together.xyz/v1"
+      );
+    }
+    // Strip a trailing slash so concatenation with /chat/completions is clean.
+    endpoint = endpoint.replace(/\/+$/, "");
+    if (!model) {
+      throw new Error(
+        'Custom provider needs a model name. Set "Custom model name" in Settings ' +
+          "(e.g. anthropic/claude-3.5-sonnet for OpenRouter, llama3.1:8b for Ollama)."
+      );
+    }
+  }
+
   return p.chat({
     apiKey,
     model,
-    endpoint: settings.provider === "custom" ? settings.customEndpoint : undefined,
+    endpoint,
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
     ...args

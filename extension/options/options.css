@@ -86,6 +86,20 @@ button:hover { border-color: var(--accent); }
 .mcp-row input { margin: 0; }
 .custom-only { display: none; }
 body.custom .custom-only { display: block; }
+body.custom .preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+code {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
 
 button.link {
   background: transparent;

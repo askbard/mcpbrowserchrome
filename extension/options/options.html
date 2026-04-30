@@ -22,12 +22,38 @@
         <label>Default model
           <input id="model" type="text" placeholder="e.g. claude-sonnet-4-6" />
         </label>
+        <div class="custom-only preset-row">
+          <span class="muted small">Quick presets:</span>
+          <button type="button" class="link" data-preset="openrouter">OpenRouter</button>
+          <button type="button" class="link" data-preset="ollama">Ollama</button>
+          <button type="button" class="link" data-preset="lmstudio">LM Studio</button>
+          <button type="button" class="link" data-preset="groq">Groq</button>
+          <button type="button" class="link" data-preset="together">Together</button>
+        </div>
         <label class="custom-only">Custom endpoint base URL
-          <input id="customEndpoint" type="text"
-                 placeholder="http://localhost:11434/v1  (Ollama)" />
+          <input id="customEndpoint" type="text" list="endpoint-presets"
+                 placeholder="https://openrouter.ai/api/v1" />
+          <datalist id="endpoint-presets">
+            <option value="https://openrouter.ai/api/v1"></option>
+            <option value="http://localhost:11434/v1"></option>
+            <option value="http://localhost:1234/v1"></option>
+            <option value="https://api.groq.com/openai/v1"></option>
+            <option value="https://api.together.xyz/v1"></option>
+            <option value="https://api.deepseek.com/v1"></option>
+            <option value="https://api.fireworks.ai/inference/v1"></option>
+          </datalist>
         </label>
         <label class="custom-only">Custom model name
-          <input id="customModel" type="text" placeholder="llama3.1:8b" />
+          <input id="customModel" type="text"
+                 placeholder="anthropic/claude-3.5-sonnet  (OpenRouter)" />
+          <span class="muted small">
+            For OpenRouter, the model id includes the publisher, e.g.
+            <code>anthropic/claude-3.5-sonnet</code>,
+            <code>openai/gpt-4o</code>,
+            <code>google/gemini-2.5-flash</code>.
+            Put your <code>sk-or-…</code> key in the <b>Custom</b> field below
+            (NOT in the OpenAI field).
+          </span>
         </label>
       </section>
 
