@@ -19,12 +19,44 @@
         <label>Provider
           <select id="provider"></select>
         </label>
-        <label>Default model
-          <input id="model" type="text" placeholder="e.g. claude-sonnet-4-6" />
+        <label>
+          <span id="key-label">API key</span>
+          <input id="api-key" type="password" autocomplete="off" />
+          <span class="muted small">
+            <a id="key-help" href="#" target="_blank" rel="noopener" style="display:none">
+              Get a key →
+            </a>
+            <span id="key-saved-indicator"></span>
+          </span>
         </label>
+        <label>Default model
+          <input id="model" type="text" list="model-suggestions"
+                 placeholder="e.g. claude-sonnet-4-6" />
+          <datalist id="model-suggestions"></datalist>
+        </label>
+
+        <div id="google-tools" style="display:none">
+          <button id="list-google-models" type="button" class="link">
+            List available Gemini models for this key
+          </button>
+          <div id="google-models-result" class="muted small"></div>
+        </div>
+
+        <div id="openrouter-tools" style="display:none">
+          <button id="load-openrouter-models" type="button" class="link">
+            Load OpenRouter models
+          </button>
+          <button id="refresh-openrouter-models" type="button" class="link" style="display:none">
+            ↻ refresh
+          </button>
+          <input id="openrouter-filter" type="text"
+                 placeholder="filter by id, e.g. claude, sonnet, free"
+                 style="display:none; margin-top:6px" />
+          <div id="openrouter-results" class="muted small"></div>
+        </div>
+
         <div class="custom-only preset-row">
           <span class="muted small">Quick presets:</span>
-          <button type="button" class="link" data-preset="openrouter">OpenRouter</button>
           <button type="button" class="link" data-preset="ollama">Ollama</button>
           <button type="button" class="link" data-preset="lmstudio">LM Studio</button>
           <button type="button" class="link" data-preset="groq">Groq</button>
@@ -32,9 +64,8 @@
         </div>
         <label class="custom-only">Custom endpoint base URL
           <input id="customEndpoint" type="text" list="endpoint-presets"
-                 placeholder="https://openrouter.ai/api/v1" />
+                 placeholder="http://localhost:11434/v1" />
           <datalist id="endpoint-presets">
-            <option value="https://openrouter.ai/api/v1"></option>
             <option value="http://localhost:11434/v1"></option>
             <option value="http://localhost:1234/v1"></option>
             <option value="https://api.groq.com/openai/v1"></option>
@@ -44,49 +75,11 @@
           </datalist>
         </label>
         <label class="custom-only">Custom model name
-          <input id="customModel" type="text" list="openrouter-models"
-                 placeholder="anthropic/claude-3.5-sonnet  (OpenRouter)" />
-          <datalist id="openrouter-models"></datalist>
-          <div id="openrouter-tools" class="custom-only" style="display:none">
-            <button id="load-openrouter-models" type="button" class="link">
-              Load OpenRouter models
-            </button>
-            <button id="refresh-openrouter-models" type="button" class="link" style="display:none">
-              ↻ refresh
-            </button>
-            <input id="openrouter-filter" type="text"
-                   placeholder="filter by id, e.g. claude, sonnet, free"
-                   style="display:none; margin-top:6px" />
-            <div id="openrouter-results" class="muted small"></div>
-          </div>
+          <input id="customModel" type="text" placeholder="llama3.1:8b" />
           <span class="muted small">
-            For OpenRouter, the model id includes the publisher, e.g.
-            <code>anthropic/claude-3.5-sonnet</code>,
-            <code>openai/gpt-4o</code>,
-            <code>google/gemini-2.5-flash</code>.
-            Put your <code>sk-or-…</code> key in the <b>Custom</b> field below
-            (NOT in the OpenAI field).
+            For OpenRouter use the dedicated <b>OpenRouter</b> provider above
+            instead — it loads the model catalog automatically.
           </span>
-        </label>
-      </section>
-
-      <section>
-        <h2>API keys</h2>
-        <label>Anthropic
-          <input id="key-anthropic" type="password" autocomplete="off" placeholder="sk-ant-…" />
-        </label>
-        <label>OpenAI
-          <input id="key-openai" type="password" autocomplete="off" placeholder="sk-…" />
-        </label>
-        <label>Google (Gemini)
-          <input id="key-google" type="password" autocomplete="off" placeholder="AIza…" />
-          <button id="list-google-models" type="button" class="link">
-            List available Gemini models for this key
-          </button>
-          <div id="google-models-result" class="muted small"></div>
-        </label>
-        <label>Custom (optional bearer token)
-          <input id="key-custom" type="password" autocomplete="off" placeholder="bearer token, if any" />
         </label>
       </section>
 

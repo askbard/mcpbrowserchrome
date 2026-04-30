@@ -19,18 +19,14 @@ const $ = (id) => document.getElementById(id);
     provSel.appendChild(opt);
   }
   provSel.value = s.provider;
-  document.body.classList.toggle("custom", s.provider === "custom");
-  provSel.addEventListener("change", () => {
-    document.body.classList.toggle("custom", provSel.value === "custom");
-  });
 
-  $("model").value = s.model;
+  // Per-provider key cache: starts from saved settings, gets updated as the
+  // user types so switching providers preserves their work.
+  const keyCache = { ...s.apiKeys };
+
+  $("model").value = s.model || "";
   $("customEndpoint").value = s.customEndpoint || "";
   $("customModel").value = s.customModel || "";
-  $("key-anthropic").value = s.apiKeys.anthropic || "";
-  $("key-openai").value = s.apiKeys.openai || "";
-  $("key-google").value = s.apiKeys.google || "";
-  $("key-custom").value = s.apiKeys.custom || "";
   $("systemPrompt").value = s.systemPrompt;
   $("temperature").value = s.temperature;
   $("maxTokens").value = s.maxTokens;
@@ -43,13 +39,64 @@ const $ = (id) => document.getElementById(id);
   $("tool-cookies").checked = s.enabledTools.cookies;
 
   renderMcp(s.mcpServers || []);
+  syncProviderUi(provSel.value);
 
-  // Custom-provider presets
+  // ---------- single-key field, swaps per provider ----------
+  $("api-key").addEventListener("input", () => {
+    keyCache[provSel.value] = $("api-key").value;
+  });
+
+  provSel.addEventListener("change", () => {
+    syncProviderUi(provSel.value);
+  });
+
+  function syncProviderUi(providerKey) {
+    const p = PROVIDERS[providerKey];
+    document.body.classList.toggle("custom", providerKey === "custom");
+    document.body.classList.toggle("openrouter", providerKey === "openrouter");
+
+    // Update the single key input.
+    $("api-key").value = keyCache[providerKey] || "";
+    $("api-key").placeholder = p.keyPlaceholder || "API key";
+    $("key-label").textContent = p.needsKey
+      ? `API key for ${p.label}`
+      : `Bearer token for ${p.label} (optional)`;
+    const help = $("key-help");
+    if (p.keyHelp) {
+      help.href = p.keyHelp;
+      help.textContent = `Get a ${p.label} key →`;
+      help.style.display = "inline";
+    } else {
+      help.style.display = "none";
+    }
+
+    // Indicate other providers that already have a saved key.
+    const others = Object.entries(keyCache)
+      .filter(([k, v]) => k !== providerKey && v && PROVIDERS[k])
+      .map(([k]) => PROVIDERS[k].label.split(" ")[0]);
+    $("key-saved-indicator").textContent = others.length
+      ? `Saved keys also remembered for: ${others.join(", ")}.`
+      : "";
+
+    // Suggest models for this provider.
+    const list = $("model-suggestions");
+    list.innerHTML = "";
+    for (const m of p.models || []) {
+      const opt = document.createElement("option");
+      opt.value = m;
+      list.appendChild(opt);
+    }
+
+    // Toggle helper panels.
+    $("google-tools").style.display = providerKey === "google" ? "block" : "none";
+    $("openrouter-tools").style.display = providerKey === "openrouter" ? "block" : "none";
+
+    // Reasonable model defaults when switching for the first time.
+    if (!$("model").value && p.models?.length) $("model").value = p.models[0];
+  }
+
+  // ---------- Custom-provider presets ----------
   const PRESETS = {
-    openrouter: {
-      endpoint: "https://openrouter.ai/api/v1",
-      model: "anthropic/claude-3.5-sonnet"
-    },
     ollama: { endpoint: "http://localhost:11434/v1", model: "llama3.1:8b" },
     lmstudio: { endpoint: "http://localhost:1234/v1", model: "" },
     groq: { endpoint: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
@@ -64,26 +111,16 @@ const $ = (id) => document.getElementById(id);
       if (!p) return;
       $("customEndpoint").value = p.endpoint;
       if (p.model) $("customModel").value = p.model;
-      $("status").textContent = `${btn.textContent} preset filled. Don't forget to add your API key in the Custom field and Save.`;
+      $("status").textContent =
+        `${btn.textContent} preset filled. Add your API key above and Save.`;
     });
   });
 
-  // Show OpenRouter helper iff the endpoint looks like OpenRouter.
-  const orTools = $("openrouter-tools");
+  // ---------- OpenRouter catalog picker ----------
   const orFilter = $("openrouter-filter");
   const orResults = $("openrouter-results");
   const orRefreshBtn = $("refresh-openrouter-models");
-  const orDatalist = $("openrouter-models");
   let orCachedModels = [];
-
-  function isOpenRouterEndpoint() {
-    return /openrouter\.ai/i.test($("customEndpoint").value || "");
-  }
-  function syncOpenRouterUi() {
-    orTools.style.display = isOpenRouterEndpoint() ? "block" : "none";
-  }
-  syncOpenRouterUi();
-  $("customEndpoint").addEventListener("input", syncOpenRouterUi);
 
   function renderOpenRouterList(models) {
     orResults.innerHTML = "";
@@ -98,27 +135,32 @@ const $ = (id) => document.getElementById(id);
       row.className = "or-row";
       const [pub, ...rest] = m.id.split("/");
       const name = rest.join("/") || m.id;
-      const meta =
-        [
-          formatOpenRouterContext(m.contextLength),
-          "in: " + formatOpenRouterPrice(m.promptUsdPerMTok),
-          "out: " + formatOpenRouterPrice(m.completionUsdPerMTok)
-        ]
-          .filter(Boolean)
-          .join("  •  ");
+      const meta = [
+        formatOpenRouterContext(m.contextLength),
+        "in: " + formatOpenRouterPrice(m.promptUsdPerMTok),
+        "out: " + formatOpenRouterPrice(m.completionUsdPerMTok)
+      ]
+        .filter(Boolean)
+        .join("  •  ");
       const toolsBadge =
-        m.supportsTools === true ? "tools"
-        : m.supportsTools === false ? "no tools"
-        : "?";
+        m.supportsTools === true
+          ? "tools"
+          : m.supportsTools === false
+          ? "no tools"
+          : "?";
       const toolsClass = m.supportsTools === true ? "or-tools yes" : "or-tools";
       row.innerHTML = `
-        <div class="or-id">${rest.length ? `<span class="pub">${esc(pub)}/</span>${esc(name)}` : esc(m.id)}</div>
+        <div class="or-id">${
+          rest.length
+            ? `<span class="pub">${esc(pub)}/</span>${esc(name)}`
+            : esc(m.id)
+        }</div>
         <div class="or-meta">${esc(meta)}</div>
         <span class="${toolsClass}">${toolsBadge}</span>`;
       row.title = m.description || m.id;
       row.addEventListener("click", () => {
-        $("customModel").value = m.id;
-        $("status").textContent = `Custom model set to ${m.id}. Don't forget to Save.`;
+        $("model").value = m.id;
+        $("status").textContent = `Model set to ${m.id}. Don't forget to Save.`;
       });
       orResults.appendChild(row);
     }
@@ -151,21 +193,22 @@ const $ = (id) => document.getElementById(id);
   async function loadOpenRouter(force = false) {
     orResults.textContent = "Loading OpenRouter catalog…";
     try {
-      const apiKey = $("key-custom").value.trim();
+      const apiKey = keyCache.openrouter || $("api-key").value.trim();
       const models = await listOpenRouterModels({ apiKey, force });
       orCachedModels = models;
-      // Populate datalist for autocomplete on the Custom model input.
-      orDatalist.innerHTML = "";
+      // Populate datalist for the unified model input.
+      const list = $("model-suggestions");
+      list.innerHTML = "";
       for (const m of models) {
         const opt = document.createElement("option");
         opt.value = m.id;
         opt.label = formatOpenRouterContext(m.contextLength);
-        orDatalist.appendChild(opt);
+        list.appendChild(opt);
       }
       applyFilter();
       $("status").textContent =
         `Loaded ${models.length} OpenRouter models. Click a row to select, ` +
-        `or type to autocomplete in the model field.`;
+        `or type to autocomplete the model field.`;
     } catch (e) {
       orResults.textContent = "Error: " + (e.message || e);
     }
@@ -173,8 +216,9 @@ const $ = (id) => document.getElementById(id);
   $("load-openrouter-models").addEventListener("click", () => loadOpenRouter(false));
   orRefreshBtn.addEventListener("click", () => loadOpenRouter(true));
 
+  // ---------- Gemini models picker ----------
   $("list-google-models").addEventListener("click", async () => {
-    const key = $("key-google").value.trim();
+    const key = (keyCache.google || $("api-key").value).trim();
     const out = $("google-models-result");
     if (!key) {
       out.textContent = "Enter a Google API key first.";
@@ -187,25 +231,24 @@ const $ = (id) => document.getElementById(id);
         out.textContent = "No models with generateContent support found.";
         return;
       }
-      out.textContent =
-        `Found ${models.length} usable model(s):\n` +
-        models
-          .map(
-            (m) =>
-              `  • ${m.name}` +
-              (m.displayName ? `  (${m.displayName})` : "") +
-              (m.inputTokenLimit ? `  in: ${m.inputTokenLimit}` : "")
-          )
-          .join("\n") +
-        `\n\nClick one to use it as your default model:\n`;
+      out.innerHTML = "";
+      const header = document.createElement("div");
+      header.textContent = `Found ${models.length} usable model(s). Click to set as default:`;
+      out.appendChild(header);
+      const list = $("model-suggestions");
+      list.innerHTML = "";
       for (const m of models) {
+        const opt = document.createElement("option");
+        opt.value = m.name;
+        list.appendChild(opt);
+
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "link";
         btn.textContent = m.name;
         btn.addEventListener("click", () => {
           $("model").value = m.name;
-          $("status").textContent = `Default model set to ${m.name}. Don't forget to Save.`;
+          $("status").textContent = `Model set to ${m.name}. Save to apply.`;
         });
         out.appendChild(document.createTextNode("  "));
         out.appendChild(btn);
@@ -222,6 +265,8 @@ const $ = (id) => document.getElementById(id);
   });
 
   $("save").addEventListener("click", async () => {
+    // Capture the current key into the cache before we serialize.
+    keyCache[provSel.value] = $("api-key").value;
     const merged = {
       ...DEFAULT_SETTINGS,
       provider: provSel.value,
@@ -229,10 +274,11 @@ const $ = (id) => document.getElementById(id);
       customEndpoint: $("customEndpoint").value.trim(),
       customModel: $("customModel").value.trim(),
       apiKeys: {
-        anthropic: $("key-anthropic").value.trim(),
-        openai: $("key-openai").value.trim(),
-        google: $("key-google").value.trim(),
-        custom: $("key-custom").value.trim()
+        anthropic: (keyCache.anthropic || "").trim(),
+        openai: (keyCache.openai || "").trim(),
+        google: (keyCache.google || "").trim(),
+        openrouter: (keyCache.openrouter || "").trim(),
+        custom: (keyCache.custom || "").trim()
       },
       systemPrompt: $("systemPrompt").value,
       temperature: parseFloat($("temperature").value) || 0.7,
@@ -257,7 +303,7 @@ const $ = (id) => document.getElementById(id);
 function renderMcp(servers) {
   const host = $("mcp-servers");
   host.innerHTML = "";
-  servers.forEach((s, i) => {
+  servers.forEach((s) => {
     const row = document.createElement("div");
     row.className = "mcp-row";
     row.innerHTML = `

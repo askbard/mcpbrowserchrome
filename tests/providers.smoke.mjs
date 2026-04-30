@@ -401,14 +401,65 @@ try {
       provider: "custom",
       apiKeys: { custom: "x" },
       customEndpoint: "http://localhost:11434/v1",
-      customModel: ""
+      customModel: "",
+      model: ""
     },
     { messages: [{ role: "user", content: "hi" }], tools: [] }
   );
 } catch (e) {
-  threwForMissingModel = /needs a model name/i.test(e.message);
+  threwForMissingModel = /no model selected/i.test(e.message);
 }
-assert(threwForMissingModel, "custom provider with empty model throws helpful error");
+assert(threwForMissingModel, "missing model throws helpful error");
+
+// ---- OpenRouter as first-class provider ----
+console.log("\nOpenRouter first-class provider");
+const { PROVIDERS } = await import("../extension/lib/providers/index.js");
+assert(PROVIDERS.openrouter, "PROVIDERS.openrouter registered");
+assert(PROVIDERS.openrouter.isOpenRouter === true, "openrouter flagged");
+assert(PROVIDERS.openrouter.needsKey === true, "openrouter needs a key");
+
+captured = null; nextReply = null;
+nextReply = { choices: [{ message: { role: "assistant", content: "ok" } }] };
+await callProvider(
+  {
+    provider: "openrouter",
+    apiKeys: { openrouter: "sk-or-test" },
+    model: "anthropic/claude-3.5-sonnet"
+  },
+  { messages: [{ role: "user", content: "hi" }], tools: [] }
+);
+assert(
+  captured.url === "https://openrouter.ai/api/v1/chat/completions",
+  "openrouter routes to OpenRouter URL without customEndpoint"
+);
+assert(
+  captured.init.headers.Authorization === "Bearer sk-or-test",
+  "openrouter uses apiKeys.openrouter"
+);
+assert(
+  captured.init.headers["HTTP-Referer"] && captured.init.headers["X-Title"],
+  "openrouter still gets attribution headers"
+);
+assert(
+  captured.body.model === "anthropic/claude-3.5-sonnet",
+  "openrouter uses settings.model (not customModel)"
+);
+
+// Missing key on first-class openrouter
+let threwForMissingOrKey = false;
+try {
+  await callProvider(
+    {
+      provider: "openrouter",
+      apiKeys: {},
+      model: "anthropic/claude-3.5-sonnet"
+    },
+    { messages: [{ role: "user", content: "hi" }], tools: [] }
+  );
+} catch (e) {
+  threwForMissingOrKey = /no api key set/i.test(e.message);
+}
+assert(threwForMissingOrKey, "openrouter without key throws helpful error");
 
 // ---- summary ----
 console.log(`\n${pass} passed, ${fail} failed`);

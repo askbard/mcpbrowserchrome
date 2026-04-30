@@ -1,9 +1,20 @@
 // OpenRouter catalog helper. /api/v1/models is public (no key required) but
 // will accept and reflect a user's key for any user-specific overrides.
 
-const MODELS_URL = "https://openrouter.ai/api/v1/models";
+import { chat as openaiChat } from "./openai.js";
+
+const ENDPOINT = "https://openrouter.ai/api/v1";
+const MODELS_URL = `${ENDPOINT}/models`;
 const CACHE_KEY = "openrouter_models_cache";
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+
+// First-class chat() — delegates to the OpenAI-compatible adapter with the
+// OpenRouter base URL pinned. (openai.js already adds the recommended
+// HTTP-Referer / X-Title attribution headers when the URL contains
+// openrouter.ai.)
+export async function chat(args) {
+  return openaiChat({ ...args, endpoint: ENDPOINT });
+}
 
 export async function listOpenRouterModels({ apiKey, force = false } = {}) {
   if (!force) {
