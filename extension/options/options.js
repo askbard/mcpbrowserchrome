@@ -1,5 +1,5 @@
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from "../lib/storage.js";
-import { PROVIDERS } from "../lib/providers/index.js";
+import { PROVIDERS, listGoogleModels } from "../lib/providers/index.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,6 +37,48 @@ const $ = (id) => document.getElementById(id);
   $("tool-cookies").checked = s.enabledTools.cookies;
 
   renderMcp(s.mcpServers || []);
+
+  $("list-google-models").addEventListener("click", async () => {
+    const key = $("key-google").value.trim();
+    const out = $("google-models-result");
+    if (!key) {
+      out.textContent = "Enter a Google API key first.";
+      return;
+    }
+    out.textContent = "Loading…";
+    try {
+      const models = await listGoogleModels(key);
+      if (!models.length) {
+        out.textContent = "No models with generateContent support found.";
+        return;
+      }
+      out.textContent =
+        `Found ${models.length} usable model(s):\n` +
+        models
+          .map(
+            (m) =>
+              `  • ${m.name}` +
+              (m.displayName ? `  (${m.displayName})` : "") +
+              (m.inputTokenLimit ? `  in: ${m.inputTokenLimit}` : "")
+          )
+          .join("\n") +
+        `\n\nClick one to use it as your default model:\n`;
+      for (const m of models) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "link";
+        btn.textContent = m.name;
+        btn.addEventListener("click", () => {
+          $("model").value = m.name;
+          $("status").textContent = `Default model set to ${m.name}. Don't forget to Save.`;
+        });
+        out.appendChild(document.createTextNode("  "));
+        out.appendChild(btn);
+      }
+    } catch (e) {
+      out.textContent = "Error: " + (e.message || e);
+    }
+  });
 
   $("add-mcp").addEventListener("click", () => {
     const list = currentMcpRows();

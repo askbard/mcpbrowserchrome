@@ -178,6 +178,12 @@ export async function chat({
       const parsed = JSON.parse(errText);
       detail = parsed?.error?.message || errText;
     } catch {}
+    if (res.status === 404) {
+      detail +=
+        `\n\nThis usually means the model "${model}" is not available to your ` +
+        `API key. In Settings, click "List available Gemini models" to see ` +
+        `what your key can reach, then pick one (e.g. gemini-2.5-flash).`;
+    }
     throw new Error(`Gemini ${res.status}: ${detail}`);
   }
   const data = await res.json();
@@ -213,7 +219,32 @@ export async function chat({
 export const GOOGLE_MODELS = [
   "gemini-2.5-pro",
   "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
   "gemini-2.0-flash",
-  "gemini-1.5-pro",
-  "gemini-1.5-flash"
+  "gemini-2.0-flash-lite"
 ];
+
+// Calls models.list and returns models that support generateContent.
+// Surfaced from the options page so the user can see exactly what their
+// key can reach when they hit a 404.
+export async function listModels(apiKey) {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+      apiKey
+    )}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Gemini models.list ${res.status}: ${t}`);
+  }
+  const data = await res.json();
+  return (data.models || [])
+    .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map((m) => ({
+      name: m.name.replace(/^models\//, ""),
+      displayName: m.displayName,
+      version: m.version,
+      inputTokenLimit: m.inputTokenLimit,
+      outputTokenLimit: m.outputTokenLimit
+    }));
+}

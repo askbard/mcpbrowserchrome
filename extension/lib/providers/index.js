@@ -2,6 +2,8 @@ import * as anthropic from "./anthropic.js";
 import * as openai from "./openai.js";
 import * as google from "./google.js";
 
+export { listModels as listGoogleModels } from "./google.js";
+
 export const PROVIDERS = {
   anthropic: {
     label: "Anthropic (Claude)",

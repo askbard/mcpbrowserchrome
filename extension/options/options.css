@@ -86,3 +86,27 @@ button:hover { border-color: var(--accent); }
 .mcp-row input { margin: 0; }
 .custom-only { display: none; }
 body.custom .custom-only { display: block; }
+
+button.link {
+  background: transparent;
+  border: none;
+  color: var(--accent-2);
+  padding: 4px 0;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+}
+button.link:hover { color: var(--accent); border-color: transparent; }
+.small { font-size: 12px; }
+#google-models-result {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+#google-models-result:empty { display: none; }
