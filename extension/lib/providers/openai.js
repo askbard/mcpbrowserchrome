@@ -65,12 +65,19 @@ export async function chat({
     body.tool_choice = "auto";
   }
 
+  const headers = {
+    "Content-Type": "application/json",
+    ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
+  };
+  // OpenRouter recommends these so requests can be attributed and rate-limited
+  // appropriately. They're harmless on other providers.
+  if (url.includes("openrouter.ai")) {
+    headers["HTTP-Referer"] = "https://github.com/askbard/mcpbrowserchrome";
+    headers["X-Title"] = "MCP Browser Chrome";
+  }
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {})
-    },
+    headers,
     body: JSON.stringify(body)
   });
   if (!res.ok) {
